@@ -17,15 +17,16 @@ library(tidyr)
 library(kableExtra)
 library(lmerTest)
 library(emmeans)
+library(pbkrtest)
 library(ggplot2)
 
-wd <- "/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/"
+Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
 ```
 
 ## Free Feed Administration Model - July
 
 ```{r echo=FALSE}
-load(paste0(wd,"Rdata/temp_data.Rdata"))
+load(paste0(Rdata_dir,"temp_data.Rdata"))
 
 free_feed <- july_t %>% filter(admin=="Free")
 free_feed$round <- ceiling(free_feed$study_day/2)
