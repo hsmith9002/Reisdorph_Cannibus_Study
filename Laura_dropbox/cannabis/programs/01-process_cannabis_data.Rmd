@@ -7,9 +7,9 @@ output: html_document
 
 Data was received from Nichole Reisdorph on April 7, 2021 in two excel files:
 
-/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/source/July Temp Data R Long Form.xlsx
+"C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\data\\July Temp Data R Long Form.xlsx"
 
-/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/source/Jan Temp Data R Long Form.xlsx
+"C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\data\\Jan Temp Data R Long Form.xlsx"
 
 Data needs to be reformatted to enable longitudinal analyses in R.
 
