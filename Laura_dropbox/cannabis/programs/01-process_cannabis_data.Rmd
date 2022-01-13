@@ -1,0 +1,151 @@
+---
+title: "01 - Set Up Cannabis Data For Analysis"
+author: "Laura Saba"
+date: "6/3/2021"
+output: html_document
+---
+
+Data was received from Nichole Reisdorph on April 7, 2021 in two excel files:
+
+/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/source/July Temp Data R Long Form.xlsx
+
+/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/source/Jan Temp Data R Long Form.xlsx
+
+Data needs to be reformatted to enable longitudinal analyses in R.
+
+```{r setup, include=FALSE, echo=FALSE}
+rm(list=ls())
+
+options(dplyr.summarise.inform=F)
+
+
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+
+wd <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\data\\"
+```
+
+## Temperature data from July
+
+```{r, echo=FALSE}
+july = read.table(file=paste0(wd,"July_Temp_Data.txt"), sep="\t", header=TRUE, fill=TRUE)
+july_t = july %>% 
+  pivot_longer(c(5:16), names_to = "sample_id", values_to = "temp") %>%
+  mutate(mouse = gsub("X","",unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[1]))),
+         admin = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[2])),
+         dose = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[length(a)])))
+
+july_t$dose[july_t$dose=="high"] = "High"
+july_t$dose[july_t$dose=="low"] = "Low"
+
+july_t$day_type = c("dose", "no dose")[as.numeric(grepl("No",july_t$time_period)) + 1]
+  
+  
+mice = july_t %>%
+  group_by(mouse, admin, dose) %>%
+  summarize(n_obs = sum(!is.na(temp)))
+
+july_timeline = july_t %>%
+  group_by(date,study_day,time_period) %>%
+  summarize(n_obs = sum(!is.na(temp)))
+
+july_timeline = july_timeline[order(july_timeline$study_day),]
+colnames(july_timeline) = c("Date", "Study Day", "Type of Day", "Number of Measured Temperatures")
+```
+
+Number of mice: `r nrow(mice)`
+
+Total number of temperature measurements: `r prettyNum(sum(!is.na(july_t$temp)), big.mark=",")`
+
+Range of number of temperature measurements per mouse: `r min(mice$n_obs)` to `r max(mice$n_obs)`
+
+```{r, echo=FALSE}
+hist(july_t$temp, main="", xlab="temperature in degrees Celcius")
+```
+
+```{r, echo=FALSE}
+july_table = mice %>%
+  group_by(admin, dose) %>%
+  summarize(num_mice = length(mouse))
+colnames(july_table) = c("Administration Type","Dose Level","Number of Mice")
+```
+
+**Treatment Group Assignment**
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(july_table, "html",align=rep("c",ncol(july_table)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+**TimeLine**
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(july_timeline, "html",align=rep("c",ncol(july_timeline)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+## Temperature data from January
+
+```{r, echo=FALSE}
+jan = read.table(file=paste0(wd,"January_Temp_Data.txt"), sep="\t", header=TRUE, fill=TRUE)
+jan_t = jan %>% 
+  pivot_longer(c(5:15), names_to = "sample_id", values_to = "temp") %>%
+  mutate(mouse = gsub("X","",unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[1]))),
+         admin = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[2])),
+         dose = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[length(a)])))
+
+jan_t$admin[jan_t$admin=="Ip"] = "IP"
+jan_t = jan_t[jan_t$time_period!="Sac Day",]  ##need to double check with Nichole about this
+
+jan_t$day_type = c("dose", "no dose")[as.numeric(grepl("No",jan_t$time_period)) + 1]
+
+jan_mice = jan_t %>%
+  group_by(mouse, admin, dose) %>%
+  summarize(n_obs = sum(!is.na(temp)))
+
+jan_timeline = jan_t %>%
+  group_by(date,study_day,time_period) %>%
+  summarize(n_obs = sum(!is.na(temp)))
+
+jan_timeline = jan_timeline[order(jan_timeline$study_day),]
+colnames(jan_timeline) = c("Date", "Study Day", "Type of Day", "Number of Measured Temperatures")
+
+```
+
+Number of mice: `r nrow(jan_mice)`
+
+Total number of temperature measurements: `r prettyNum(sum(!is.na(jan_t$temp)), big.mark=",")`
+
+Range of number of temperature measurements per mouse: `r min(jan_mice$n_obs)` to `r max(mice$n_obs)`
+
+```{r, echo=FALSE}
+hist(jan_t$temp, main="", xlab="temperature in degrees Celcius")
+```
+
+```{r, echo=FALSE}
+jan_table = jan_mice %>%
+  group_by(admin, dose) %>%
+  summarize(num_mice = length(mouse))
+colnames(jan_table) = c("Administration Type","Dose Level","Number of Mice")
+```
+
+**Treatment Group Assignment**
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(jan_timeline, "html",align=rep("c",ncol(jan_timeline)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+**Timeline**
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(jan_table, "html",align=rep("c",ncol(jan_table)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, echo=FALSE, eval=FALSE}
+Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
+save(jan_t, july_t, file=paste0(Rdata_dir,"temp_data.Rdata"))
+```

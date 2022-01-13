@@ -1,0 +1,221 @@
+---
+title: "02c - Longitudinal Analysis of Cannabis-related Temperatures (Gavage Administration)"
+author: "Laura Saba"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE, echo=FALSE}
+rm(list=ls())
+
+options(dplyr.summarise.inform=F)
+
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(lmerTest)
+library(emmeans)
+library(ggplot2)
+
+wd <- "/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/"
+```
+
+
+## IP Administration Model - January
+
+Please note that there are no control mice for gavage administration in the January experiment.
+
+```{r echo=FALSE}
+load(paste0(wd,"Rdata/temp_data.Rdata"))
+
+gavage <- jan_t %>% filter(admin=="Gavage")
+gavage$round <- ceiling(gavage$study_day/2)
+gavage$day_type = factor(gavage$day_type)
+gavage$time_window = factor(gavage$time_window,
+                               levels=c( "PreDose","Dose","Post Dose 1","Post Dose 2","Post Dose 3","Post Dose 4","Post Dose 5","Post Dose 6"))
+gavage$dose = factor(gavage$dose, levels=c("Low","Med","High"))
+gavage$round = factor(gavage$round)
+
+gavage_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=gavage[gavage$day_type=="dose",])
+```
+
+### Chronic effects of cannabis
+
+For this analysis, I compared the temperature at during the 'predose' window across dosage groups using time in days as a continuous covariate. Data from dosing days and non-dosing days were included since we are only looking at the predose window.
+
+
+```{r, echo=FALSE}
+## chronic effects of cannabis
+
+# difference in predose temperature across time and dose
+
+x <- lmer(temp ~ dose*study_day + (1|mouse),
+          data=gavage[gavage$time_window=="PreDose",])
+
+x_trends <- emtrends(x, pairwise ~ dose, var = "study_day")
+
+x_rg = ref_grid(x, at = list(study_day = c(1,8,14)))
+x_means <- emmeans(x_rg, ~ dose, by="study_day")
+x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="Low", adjust="none")
+```
+
+**Two-Way ANOVA Results**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+**Comparing Slopes, i.e., study day trends, across dosage groups**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(x_trends$emtrends, "html",align=rep("c",ncol(data.frame(x_trends$emtrends))), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(data.frame(x_trends$contrasts), "html",align=rep("c",ncol(data.frame(x_trends$contrasts))), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+**Model-based dose group estimates**
+
+```{r, echo=FALSE}
+emmip(x, dose ~ study_day, cov.reduce = range,
+      xlab="Day of Study", ylab="Temperature During Predose Window")
+```
+
+**Observed data**
+
+Each line represents an individual mice.
+```{r, echo=FALSE}
+p <- ggplot(data = gavage[gavage$time_window=="PreDose",],
+      xlab="Day of Study", ylab="Temperature During Predose Window")
+p + geom_line(aes(x=study_day,y=temp,col=dose,group=mouse))
+```
+
+Based on my understanding of the study design, the 3 dosage groups should not differ in temperature at day 1 during the predose window because none of the animals would have received any cannabis prior to that time point. 
+
+Since this graphic made it look like the dosage groups differed at day 1, I tested that directly.
+
+```{r, echo=FALSE}
+x <- lm(temp ~ dose, data=gavage[gavage$study_day==1 & gavage$time_window=="PreDose",])
+x_means <- emmeans(x, ~ dose)
+x_contrasts <- contrast(x_means,method="pairwise")
+```
+
+Omnibus p-value for dosage effect: `r sprintf("%.3f", round(anova(x)[[5]][1],3))`
+
+```{r, echo=FALSE}
+plot(as.numeric(gavage$dose[gavage$study_day==1 & gavage$time_window=="PreDose"]), gavage$temp[gavage$study_day==1 & gavage$time_window=="PreDose"], xaxt="n", pch=19,
+     xlab = "Dosage Group", ylab="Temperature")
+axis(1, at=c(1:3), labels = levels(gavage$dose), tick=FALSE)
+```    
+
+There are no significant differences in starting temperature between the three dose levels.
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(data.frame(x_contrasts), "html",align=rep("c",ncol(data.frame(x_contrasts))), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+## Acute Effects of Cannabis on Temperature
+
+To examine the acute effects (i.e., within a treatment day) of cannabis, data points were limited to those collected during a 'dose' day.
+
+### Initial Acute Effect of Cannabis on Temperature
+
+First, the initial acute effects of cannabis were assessed by only focusing on changes in temperature across different windows of time on the first study day that mice were exposed to cannabis
+
+```{r, echo=FALSE, eval=TRUE}
+## initial acute effects of cannabis
+x <- lmer(temp ~ dose*time_window + (1|mouse),
+          data=gavage[gavage$round==1,])
+x_means <- emmeans(x, ~ time_window, by="dose")
+x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="PreDose", adjust="none")
+
+low_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Low",]
+med_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Med",]
+high_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="High",]
+
+```
+
+**Two-Way ANOVA Results**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+Based on the significant interaction effect, the model suggest that the effect of the within-day time window differs between doses.
+
+```{r, echo=FALSE}
+p <- emmip(x, dose ~ time_window, ylab = "temperature in initial dose round",
+      xlab = "")
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(low_contrasts, "html",align=rep("c",ncol(low_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(med_contrasts, "html",align=rep("c",ncol(med_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(high_contrasts, "html",align=rep("c",ncol(high_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+
+### Acute Effect of Cannabis on Temperature After Chronic Exposure to Cannabis
+
+
+```{r echo=FALSE, eval=TRUE, include=FALSE}
+## acute effects of cannabis after chronic exposure
+x <- lmer(temp ~ dose*time_window + (1|mouse),
+          data=gavage[gavage$round==7,])
+x_means <- emmeans(x, ~ time_window, by="dose")
+x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="PreDose", adjust="none")
+
+low_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Low",]
+med_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Med",]
+high_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="High",]
+```
+
+
+**Two-Way ANOVA Results**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+The two-way ANOVA results suggest that there are is a significant difference across time windows and that difference is consistent across dosage group.
+
+**Time Window Effect in Last Round of Dose Stratified by Dose**
+
+```{r, echo=FALSE}
+p <- emmip(x, dose ~ time_window, ylab = "temperature in final dose round",
+      xlab = "")
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(low_contrasts, "html",align=rep("c",ncol(low_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(med_contrasts, "html",align=rep("c",ncol(med_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(high_contrasts, "html",align=rep("c",ncol(high_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
