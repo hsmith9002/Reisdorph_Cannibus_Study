@@ -17,15 +17,16 @@ library(tidyr)
 library(kableExtra)
 library(lmerTest)
 library(emmeans)
+library(pbkrtest)
 library(ggplot2)
 
-wd <- "/Users/sabal/Documents/Collaborators/Reisdorph_Nichole/cannabis/"
+Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
 ```
 
 ## IP Administration Model - July
 
 ```{r echo=FALSE}
-load(paste0(wd,"Rdata/temp_data.Rdata"))
+load(paste0(Rdata_dir,"temp_data.Rdata"))
 
 ip <- july_t %>% filter(admin=="IP")
 ip$round <- ceiling(ip$study_day/2)
@@ -38,6 +39,83 @@ ip$round = factor(ip$round)
 ip_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=ip[ip$day_type=="dose",])
 ```
 
+## Data Dictionary
+
+<style type="text/css">
+.tg  {border-collapse:collapse;border-color:#ccc;border-spacing:0;}
+.tg td{background-color:#fff;border-color:#ccc;border-style:solid;border-width:1px;color:#333;
+  font-family:Arial, sans-serif;font-size:14px;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{background-color:#f0f0f0;border-color:#ccc;border-style:solid;border-width:1px;color:#333;
+  font-family:Arial, sans-serif;font-size:14px;font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
+.tg .tg-0lax{text-align:left;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-0pky">Variable</th>
+    <th class="tg-0pky">Definition</th>
+    <th class="tg-0pky">Factor Levels</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-0pky">date</td>
+    <td class="tg-0pky">The actual date associated with record</td>
+    <td class="tg-0pky">Dates for July &amp;<br>January</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">study_day</td>
+    <td class="tg-0pky">An ordinal number describing the study day. For each study day, there are 72 records</td>
+    <td class="tg-0pky">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">time_period</td>
+    <td class="tg-0pky">Variable describing the dose period. Each time period can be either a "dose #" or a "nonDose #". Example: Dose 1 &amp; nonDose 1</td>
+    <td class="tg-0pky">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">time_window</td>
+    <td class="tg-0lax">Variable describing aggregated time windows for temp record collection. Original data had temp data recorded <br>by the minute. These data were then averaged over 6 minute windows, and then aggregated in to hour long windows.<br>There 8 windows</td>
+    <td class="tg-0lax">pre dose<br>dose<br>post dose 1<br>post dose 2<br>post dose 3<br>post dose 4<br>post dose 5<br>post dose 6</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">sample_id</td>
+    <td class="tg-0lax">Unique identifier for each mouse</td>
+    <td class="tg-0lax">NA</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">temp</td>
+    <td class="tg-0lax">Aggregated temperature measurement for a given time_window</td>
+    <td class="tg-0lax">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">mouse</td>
+    <td class="tg-0lax">Number assigned to a given mouse</td>
+    <td class="tg-0lax">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">admin</td>
+    <td class="tg-0lax">Method used to administer cannabis to mouse</td>
+    <td class="tg-0lax">Free<br>IP<br>Gavage</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">dose</td>
+    <td class="tg-0lax">Variable describing the dose level for a given mouse</td>
+    <td class="tg-0lax">Control<br>Low<br>Medium<br>High</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">day_type</td>
+    <td class="tg-0lax">Variable describing whether or not a dose of cannabis was administered</td>
+    <td class="tg-0lax">dose<br>no dose</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">round</td>
+    <td class="tg-0lax">Variable that serves as a wrapper for an administration cycle (i.e. encompasses a dose day and a no dose day)</td>
+    <td class="tg-0lax">N/A</td>
+  </tr>
+</tbody>
+</table>
 ### Chronic effects of cannabis
 
 For this analysis, I compared the temperature at during the 'predose' window across dosage groups using time in days as a continuous covariate. Data from dosing days and non-dosing days were included since we are only looking at the predose window.
@@ -178,38 +256,12 @@ p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## IP Administration Model - January
 
 Please note that there are no control mice for IP administration in the January experiment.
 
 ```{r echo=FALSE}
-load(paste0(wd,"Rdata/temp_data.Rdata"))
+load(paste0(Rdata_dir,"temp_data.Rdata"))
 
 ip <- jan_t %>% filter(admin=="IP")
 ip$round <- ceiling(ip$study_day/2)
