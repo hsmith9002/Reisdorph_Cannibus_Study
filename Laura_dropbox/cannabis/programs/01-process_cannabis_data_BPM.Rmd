@@ -1,15 +1,15 @@
 ---
-title: "01 - Set Up Cannabis Data For Analysis"
-author: "Laura Saba"
-date: "6/3/2021"
+title: "01 - Set Up Cannabis  Heart Rate Data For Analysis"
+author: "Harry Smith"
+date: "02/25/2022"
 output: html_document
 ---
 
 Data was received from Nichole Reisdorph on April 7, 2021 in two excel files:
 
-"C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\data\\July Temp Data R Long Form.xlsx"
+"/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/data/July_BPM_Data.csv"
 
-"C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\data\\Jan Temp Data R Long Form.xlsx"
+"/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/data"
 
 Data needs to be reformatted to enable longitudinal analyses in R.
 
@@ -23,15 +23,15 @@ library(dplyr)
 library(tidyr)
 library(kableExtra)
 
-wd <- "/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/data"
+wd <- "/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/data/"
 ```
 
-## Temperature data from July
+## bpm data from July
 
 ```{r, echo=FALSE}
-july = read.table(file=paste0(wd,"July_Temp_Data.txt"), sep="\t", header=TRUE, fill=TRUE)
+july = read.table(file=paste0(wd,"July_BPM_Data.csv"), sep=",", header=TRUE, fill=TRUE)
 july_t = july %>% 
-  pivot_longer(c(5:16), names_to = "sample_id", values_to = "temp") %>%
+  pivot_longer(c(5:16), names_to = "sample_id", values_to = "bpm") %>%
   mutate(mouse = gsub("X","",unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[1]))),
          admin = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[2])),
          dose = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[length(a)])))
@@ -44,24 +44,24 @@ july_t$day_type = c("dose", "no dose")[as.numeric(grepl("No",july_t$time_period)
   
 mice = july_t %>%
   group_by(mouse, admin, dose) %>%
-  summarize(n_obs = sum(!is.na(temp)))
+  summarize(n_obs = sum(!is.na(bpm)))
 
 july_timeline = july_t %>%
   group_by(date,study_day,time_period) %>%
-  summarize(n_obs = sum(!is.na(temp)))
+  summarize(n_obs = sum(!is.na(bpm)))
 
 july_timeline = july_timeline[order(july_timeline$study_day),]
-colnames(july_timeline) = c("Date", "Study Day", "Type of Day", "Number of Measured Temperatures")
+colnames(july_timeline) = c("Date", "Study Day", "Type of Day", "Number of Measured bpm")
 ```
 
 Number of mice: `r nrow(mice)`
 
-Total number of temperature measurements: `r prettyNum(sum(!is.na(july_t$temp)), big.mark=",")`
+Total number of bpmerature measurements: `r prettyNum(sum(!is.na(july_t$bpm)), big.mark=",")`
 
-Range of number of temperature measurements per mouse: `r min(mice$n_obs)` to `r max(mice$n_obs)`
+Range of number of bpmerature measurements per mouse: `r min(mice$n_obs)` to `r max(mice$n_obs)`
 
 ```{r, echo=FALSE}
-hist(july_t$temp, main="", xlab="temperature in degrees Celcius")
+hist(july_t$bpm, main="", xlab="Heart Rate - BPM")
 ```
 
 ```{r, echo=FALSE}
@@ -86,12 +86,12 @@ kable(july_timeline, "html",align=rep("c",ncol(july_timeline)), row.names = FALS
 ```
 
 
-## Temperature data from January
+## bpm data from January
 
 ```{r, echo=FALSE}
-jan = read.table(file=paste0(wd,"January_Temp_Data.txt"), sep="\t", header=TRUE, fill=TRUE)
+jan = read.table(file=paste0(wd,"January_BPM_Data.csv"), sep=",", header=TRUE, fill=TRUE)
 jan_t = jan %>% 
-  pivot_longer(c(5:15), names_to = "sample_id", values_to = "temp") %>%
+  pivot_longer(c(5:15), names_to = "sample_id", values_to = "bpm") %>%
   mutate(mouse = gsub("X","",unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[1]))),
          admin = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[2])),
          dose = unlist(lapply(strsplit(sample_id, split=".", fixed=TRUE), function(a) a[length(a)])))
@@ -103,25 +103,25 @@ jan_t$day_type = c("dose", "no dose")[as.numeric(grepl("No",jan_t$time_period)) 
 
 jan_mice = jan_t %>%
   group_by(mouse, admin, dose) %>%
-  summarize(n_obs = sum(!is.na(temp)))
+  summarize(n_obs = sum(!is.na(bpm)))
 
 jan_timeline = jan_t %>%
   group_by(date,study_day,time_period) %>%
-  summarize(n_obs = sum(!is.na(temp)))
+  summarize(n_obs = sum(!is.na(bpm)))
 
 jan_timeline = jan_timeline[order(jan_timeline$study_day),]
-colnames(jan_timeline) = c("Date", "Study Day", "Type of Day", "Number of Measured Temperatures")
+colnames(jan_timeline) = c("Date", "Study Day", "Type of Day", "Number of Measured bpm")
 
 ```
 
 Number of mice: `r nrow(jan_mice)`
 
-Total number of temperature measurements: `r prettyNum(sum(!is.na(jan_t$temp)), big.mark=",")`
+Total number of bpmerature measurements: `r prettyNum(sum(!is.na(jan_t$bpm)), big.mark=",")`
 
-Range of number of temperature measurements per mouse: `r min(jan_mice$n_obs)` to `r max(mice$n_obs)`
+Range of number of bpmerature measurements per mouse: `r min(jan_mice$n_obs)` to `r max(mice$n_obs)`
 
 ```{r, echo=FALSE}
-hist(jan_t$temp, main="", xlab="temperature in degrees Celcius")
+hist(jan_t$bpm, main="", xlab="Heart Rate - BPM")
 ```
 
 ```{r, echo=FALSE}
@@ -146,6 +146,6 @@ kable(jan_table, "html",align=rep("c",ncol(jan_table)), row.names = FALSE) %>%
 ```
 
 ```{r, echo=FALSE, eval=FALSE}
-Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
-save(jan_t, july_t, file=paste0(Rdata_dir,"temp_data.Rdata"))
+Rdata_dir <- "/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/Rdata/"
+save(jan_t, july_t, file=paste0(Rdata_dir,"bpm_data.Rdata"))
 ```

@@ -19,8 +19,11 @@ library(lmerTest)
 library(emmeans)
 library(pbkrtest)
 library(ggplot2)
+library(longpower)
+library(gee)
 
-Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
+
+Rdata_dir <- "/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/Rdata/"
 ```
 
 ## Free Feed Administration Model - July
@@ -36,7 +39,23 @@ free_feed$time_window = factor(free_feed$time_window,
 free_feed$dose = factor(free_feed$dose, levels=c("Control","Low","Med","High"))
 free_feed$round = factor(free_feed$round)
 
-ff_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=free_feed[free_feed$day_type=="dose",])
+ff_model = lmer(temp ~ time_window*dose*round+ (1|mouse) , data=free_feed[free_feed$day_type=="dose",])
+
+## Power analysis for Nicholes new grant
+
+# first run gee test
+tempstudy <- free_feed[free_feed$day_type=="dose",]
+fm3 <- lme(temp ~ time_window*dose*round, random=~1|mouse, tempstudy)
+
+# power calc
+pwr_res <- lmmpower(x, 
+         sig.level = 0.05, 
+         power = .80, 
+         pct.change = .25, 
+         parameter = 2, 
+         t = c(0,1,2,3,4,5,6))
+
+powerSim(fm3)
 ```
 
 ## Data Dictionary
@@ -129,6 +148,14 @@ For this analysis, I compared the temperature at during the 'predose' window acr
 
 x <- lmer(temp ~ dose*study_day + (1|mouse),
           data=free_feed[free_feed$time_window=="PreDose",])
+
+# power calc
+pwr_res <- lmmpower(x, 
+         sig.level = 0.05, 
+         power = .80, 
+         pct.change = .25, 
+         parameter = 2, 
+         t = c(0,1,2,3,4,5,6))
 
 x_trends <- emtrends(x, pairwise ~ dose, var = "study_day")
 
