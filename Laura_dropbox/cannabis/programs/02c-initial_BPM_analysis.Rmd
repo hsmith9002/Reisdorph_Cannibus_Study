@@ -1,0 +1,299 @@
+---
+title: "02c - Longitudinal Analysis of Cannabis-related Temperatures (Gavage Administration)"
+author: "Laura Saba"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE, echo=FALSE}
+rm(list=ls())
+
+options(dplyr.summarise.inform=F)
+
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(lmerTest)
+library(emmeans)
+library(ggplot2)
+
+Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
+```
+
+
+## IP Administration Model - January
+
+Please note that there are no control mice for gavage administration in the January experiment.
+
+```{r echo=FALSE}
+load(paste0(Rdata_dir,"temp_data.Rdata"))
+
+gavage <- jan_t %>% filter(admin=="Gavage")
+gavage$round <- ceiling(gavage$study_day/2)
+gavage$day_type = factor(gavage$day_type)
+gavage$time_window = factor(gavage$time_window,
+                               levels=c( "PreDose","Dose","Post Dose 1","Post Dose 2","Post Dose 3","Post Dose 4","Post Dose 5","Post Dose 6"))
+gavage$dose = factor(gavage$dose, levels=c("Low","Med","High"))
+gavage$round = factor(gavage$round)
+
+gavage_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=gavage[gavage$day_type=="dose",])
+```
+
+## Data Disctionary
+
+<style type="text/css">
+.tg  {border-collapse:collapse;border-color:#ccc;border-spacing:0;}
+.tg td{background-color:#fff;border-color:#ccc;border-style:solid;border-width:1px;color:#333;
+  font-family:Arial, sans-serif;font-size:14px;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{background-color:#f0f0f0;border-color:#ccc;border-style:solid;border-width:1px;color:#333;
+  font-family:Arial, sans-serif;font-size:14px;font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
+.tg .tg-0lax{text-align:left;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-0pky">Variable</th>
+    <th class="tg-0pky">Definition</th>
+    <th class="tg-0pky">Factor Levels</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-0pky">date</td>
+    <td class="tg-0pky">The actual date associated with record</td>
+    <td class="tg-0pky">Dates for July &amp;<br>January</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">study_day</td>
+    <td class="tg-0pky">An ordinal number describing the study day. For each study day, there are 72 records</td>
+    <td class="tg-0pky">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">time_period</td>
+    <td class="tg-0pky">Variable describing the dose period. Each time period can be either a "dose #" or a "nonDose #". Example: Dose 1 &amp; nonDose 1</td>
+    <td class="tg-0pky">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">time_window</td>
+    <td class="tg-0lax">Variable describing aggregated time windows for temp record collection. Original data had temp data recorded <br>by the minute. These data were then averaged over 6 minute windows, and then aggregated in to hour long windows.<br>There 8 windows</td>
+    <td class="tg-0lax">pre dose<br>dose<br>post dose 1<br>post dose 2<br>post dose 3<br>post dose 4<br>post dose 5<br>post dose 6</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">sample_id</td>
+    <td class="tg-0lax">Unique identifier for each mouse</td>
+    <td class="tg-0lax">NA</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">temp</td>
+    <td class="tg-0lax">Aggregated temperature measurement for a given time_window</td>
+    <td class="tg-0lax">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">mouse</td>
+    <td class="tg-0lax">Number assigned to a given mouse</td>
+    <td class="tg-0lax">N/A</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">admin</td>
+    <td class="tg-0lax">Method used to administer cannabis to mouse</td>
+    <td class="tg-0lax">Free<br>IP<br>Gavage</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">dose</td>
+    <td class="tg-0lax">Variable describing the dose level for a given mouse</td>
+    <td class="tg-0lax">Control<br>Low<br>Medium<br>High</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">day_type</td>
+    <td class="tg-0lax">Variable describing whether or not a dose of cannabis was administered</td>
+    <td class="tg-0lax">dose<br>no dose</td>
+  </tr>
+  <tr>
+    <td class="tg-0lax">round</td>
+    <td class="tg-0lax">Variable that serves as a wrapper for an administration cycle (i.e. encompasses a dose day and a no dose day)</td>
+    <td class="tg-0lax">N/A</td>
+  </tr>
+</tbody>
+</table>
+
+### Chronic effects of cannabis
+
+For this analysis, I compared the temperature at during the 'predose' window across dosage groups using time in days as a continuous covariate. Data from dosing days and non-dosing days were included since we are only looking at the predose window.
+
+
+```{r, echo=FALSE}
+## chronic effects of cannabis
+
+# difference in predose temperature across time and dose
+
+x <- lmer(temp ~ dose*study_day + (1|mouse),
+          data=gavage[gavage$time_window=="PreDose",])
+
+x_trends <- emtrends(x, pairwise ~ dose, var = "study_day")
+
+x_rg = ref_grid(x, at = list(study_day = c(1,8,14)))
+x_means <- emmeans(x_rg, ~ dose, by="study_day")
+x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="Low", adjust="none")
+```
+
+**Two-Way ANOVA Results**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+**Comparing Slopes, i.e., study day trends, across dosage groups**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(x_trends$emtrends, "html",align=rep("c",ncol(data.frame(x_trends$emtrends))), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(data.frame(x_trends$contrasts), "html",align=rep("c",ncol(data.frame(x_trends$contrasts))), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+**Model-based dose group estimates**
+
+```{r, echo=FALSE}
+emmip(x, dose ~ study_day, cov.reduce = range,
+      xlab="Day of Study", ylab="Temperature During Predose Window")
+```
+
+**Observed data**
+
+Each line represents an individual mice.
+```{r, echo=FALSE}
+p <- ggplot(data = gavage[gavage$time_window=="PreDose",],
+      xlab="Day of Study", ylab="Temperature During Predose Window")
+p + geom_line(aes(x=study_day,y=temp,col=dose,group=mouse))
+```
+
+Based on my understanding of the study design, the 3 dosage groups should not differ in temperature at day 1 during the predose window because none of the animals would have received any cannabis prior to that time point. 
+
+Since this graphic made it look like the dosage groups differed at day 1, I tested that directly.
+
+```{r, echo=FALSE}
+x <- lm(temp ~ dose, data=gavage[gavage$study_day==1 & gavage$time_window=="PreDose",])
+x_means <- emmeans(x, ~ dose)
+x_contrasts <- contrast(x_means,method="pairwise")
+```
+
+Omnibus p-value for dosage effect: `r sprintf("%.3f", round(anova(x)[[5]][1],3))`
+
+```{r, echo=FALSE}
+plot(as.numeric(gavage$dose[gavage$study_day==1 & gavage$time_window=="PreDose"]), gavage$temp[gavage$study_day==1 & gavage$time_window=="PreDose"], xaxt="n", pch=19,
+     xlab = "Dosage Group", ylab="Temperature")
+axis(1, at=c(1:3), labels = levels(gavage$dose), tick=FALSE)
+```    
+
+There are no significant differences in starting temperature between the three dose levels.
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(data.frame(x_contrasts), "html",align=rep("c",ncol(data.frame(x_contrasts))), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+## Acute Effects of Cannabis on Temperature
+
+To examine the acute effects (i.e., within a treatment day) of cannabis, data points were limited to those collected during a 'dose' day.
+
+### Initial Acute Effect of Cannabis on Temperature
+
+First, the initial acute effects of cannabis were assessed by only focusing on changes in temperature across different windows of time on the first study day that mice were exposed to cannabis
+
+```{r, echo=FALSE, eval=TRUE}
+## initial acute effects of cannabis
+x <- lmer(temp ~ dose*time_window + (1|mouse),
+          data=gavage[gavage$round==1,])
+x_means <- emmeans(x, ~ time_window, by="dose")
+x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="PreDose", adjust="none")
+
+low_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Low",]
+med_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Med",]
+high_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="High",]
+
+```
+
+**Two-Way ANOVA Results**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+Based on the significant interaction effect, the model suggest that the effect of the within-day time window differs between doses.
+
+```{r, echo=FALSE}
+p <- emmip(x, dose ~ time_window, ylab = "temperature in initial dose round",
+      xlab = "")
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(low_contrasts, "html",align=rep("c",ncol(low_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(med_contrasts, "html",align=rep("c",ncol(med_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(high_contrasts, "html",align=rep("c",ncol(high_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+
+
+### Acute Effect of Cannabis on Temperature After Chronic Exposure to Cannabis
+
+
+```{r echo=FALSE, eval=TRUE, include=FALSE}
+## acute effects of cannabis after chronic exposure
+x <- lmer(temp ~ dose*time_window + (1|mouse),
+          data=gavage[gavage$round==7,])
+x_means <- emmeans(x, ~ time_window, by="dose")
+x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="PreDose", adjust="none")
+
+low_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Low",]
+med_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="Med",]
+high_contrasts <- data.frame(x_contrasts)[data.frame(x_contrasts)$dose=="High",]
+```
+
+
+**Two-Way ANOVA Results**
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+The two-way ANOVA results suggest that there are is a significant difference across time windows and that difference is consistent across dosage group.
+
+**Time Window Effect in Last Round of Dose Stratified by Dose**
+
+```{r, echo=FALSE}
+p <- emmip(x, dose ~ time_window, ylab = "temperature in final dose round",
+      xlab = "")
+p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(low_contrasts, "html",align=rep("c",ncol(low_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(med_contrasts, "html",align=rep("c",ncol(med_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
+```{r, results='asis',echo=FALSE, eval=TRUE}
+kable(high_contrasts, "html",align=rep("c",ncol(high_contrasts)), row.names = FALSE) %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position="left")
+```
+
