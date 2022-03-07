@@ -1,6 +1,6 @@
 ---
-title: "02c - Longitudinal Analysis of Cannabis-related Temperatures (Gavage Administration)"
-author: "Laura Saba"
+title: "02c - Longitudinal Analysis of Cannabis-related heart rates (Gavage Administration)"
+author: "Harry Smith"
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -19,7 +19,7 @@ library(lmerTest)
 library(emmeans)
 library(ggplot2)
 
-Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdorph_Cannibus_Study\\Laura_dropbox\\cannabis\\Rdata\\"
+Rdata_dir <- "/Users/smithh/Documents/Reisdorph_Lab/Reisdorph_Cannibus_Study/Laura_dropbox/cannabis/Rdata/"
 ```
 
 
@@ -28,7 +28,7 @@ Rdata_dir <- "C:\\Users\\hsmit\\Documents\\Reisdorph_Lab\\Cannibus_Study\\Reisdo
 Please note that there are no control mice for gavage administration in the January experiment.
 
 ```{r echo=FALSE}
-load(paste0(Rdata_dir,"temp_data.Rdata"))
+load(paste0(Rdata_dir,"bpm_data.Rdata"))
 
 gavage <- jan_t %>% filter(admin=="Gavage")
 gavage$round <- ceiling(gavage$study_day/2)
@@ -38,7 +38,7 @@ gavage$time_window = factor(gavage$time_window,
 gavage$dose = factor(gavage$dose, levels=c("Low","Med","High"))
 gavage$round = factor(gavage$round)
 
-gavage_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=gavage[gavage$day_type=="dose",])
+gavage_model = lmer(bpm ~ time_window*dose*round + (1|mouse) , data=gavage[gavage$day_type=="dose",])
 ```
 
 ## Data Disctionary
@@ -78,7 +78,7 @@ gavage_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=gavage[gava
   </tr>
   <tr>
     <td class="tg-0lax">time_window</td>
-    <td class="tg-0lax">Variable describing aggregated time windows for temp record collection. Original data had temp data recorded <br>by the minute. These data were then averaged over 6 minute windows, and then aggregated in to hour long windows.<br>There 8 windows</td>
+    <td class="tg-0lax">Variable describing aggregated time windows for bpm record collection. Original data had bpm data recorded <br>by the minute. These data were then averaged over 6 minute windows, and then aggregated in to hour long windows.<br>There 8 windows</td>
     <td class="tg-0lax">pre dose<br>dose<br>post dose 1<br>post dose 2<br>post dose 3<br>post dose 4<br>post dose 5<br>post dose 6</td>
   </tr>
   <tr>
@@ -87,8 +87,8 @@ gavage_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=gavage[gava
     <td class="tg-0lax">NA</td>
   </tr>
   <tr>
-    <td class="tg-0lax">temp</td>
-    <td class="tg-0lax">Aggregated temperature measurement for a given time_window</td>
+    <td class="tg-0lax">bpm</td>
+    <td class="tg-0lax">Aggregated heart rate measurement for a given time_window</td>
     <td class="tg-0lax">N/A</td>
   </tr>
   <tr>
@@ -121,15 +121,15 @@ gavage_model = lmer(temp ~ time_window*dose*round + (1|mouse) , data=gavage[gava
 
 ### Chronic effects of cannabis
 
-For this analysis, I compared the temperature at during the 'predose' window across dosage groups using time in days as a continuous covariate. Data from dosing days and non-dosing days were included since we are only looking at the predose window.
+For this analysis, I compared the heart rate at during the 'predose' window across dosage groups using time in days as a continuous covariate. Data from dosing days and non-dosing days were included since we are only looking at the predose window.
 
 
 ```{r, echo=FALSE}
 ## chronic effects of cannabis
 
-# difference in predose temperature across time and dose
+# difference in predose heart rate across time and dose
 
-x <- lmer(temp ~ dose*study_day + (1|mouse),
+x <- lmer(bpm ~ dose*study_day + (1|mouse),
           data=gavage[gavage$time_window=="PreDose",])
 
 x_trends <- emtrends(x, pairwise ~ dose, var = "study_day")
@@ -162,7 +162,7 @@ kable(data.frame(x_trends$contrasts), "html",align=rep("c",ncol(data.frame(x_tre
 
 ```{r, echo=FALSE}
 emmip(x, dose ~ study_day, cov.reduce = range,
-      xlab="Day of Study", ylab="Temperature During Predose Window")
+      xlab="Day of Study", ylab="heart rate During Predose Window")
 ```
 
 **Observed data**
@@ -170,16 +170,16 @@ emmip(x, dose ~ study_day, cov.reduce = range,
 Each line represents an individual mice.
 ```{r, echo=FALSE}
 p <- ggplot(data = gavage[gavage$time_window=="PreDose",],
-      xlab="Day of Study", ylab="Temperature During Predose Window")
-p + geom_line(aes(x=study_day,y=temp,col=dose,group=mouse))
+      xlab="Day of Study", ylab="heart rate During Predose Window")
+p + geom_line(aes(x=study_day,y=bpm,col=dose,group=mouse))
 ```
 
-Based on my understanding of the study design, the 3 dosage groups should not differ in temperature at day 1 during the predose window because none of the animals would have received any cannabis prior to that time point. 
+Based on my understanding of the study design, the 3 dosage groups should not differ in heart rate at day 1 during the predose window because none of the animals would have received any cannabis prior to that time point. 
 
 Since this graphic made it look like the dosage groups differed at day 1, I tested that directly.
 
 ```{r, echo=FALSE}
-x <- lm(temp ~ dose, data=gavage[gavage$study_day==1 & gavage$time_window=="PreDose",])
+x <- lm(bpm ~ dose, data=gavage[gavage$study_day==1 & gavage$time_window=="PreDose",])
 x_means <- emmeans(x, ~ dose)
 x_contrasts <- contrast(x_means,method="pairwise")
 ```
@@ -187,29 +187,29 @@ x_contrasts <- contrast(x_means,method="pairwise")
 Omnibus p-value for dosage effect: `r sprintf("%.3f", round(anova(x)[[5]][1],3))`
 
 ```{r, echo=FALSE}
-plot(as.numeric(gavage$dose[gavage$study_day==1 & gavage$time_window=="PreDose"]), gavage$temp[gavage$study_day==1 & gavage$time_window=="PreDose"], xaxt="n", pch=19,
-     xlab = "Dosage Group", ylab="Temperature")
+plot(as.numeric(gavage$dose[gavage$study_day==1 & gavage$time_window=="PreDose"]), gavage$bpm[gavage$study_day==1 & gavage$time_window=="PreDose"], xaxt="n", pch=19,
+     xlab = "Dosage Group", ylab="heart rate")
 axis(1, at=c(1:3), labels = levels(gavage$dose), tick=FALSE)
 ```    
 
-There are no significant differences in starting temperature between the three dose levels.
+There are no significant differences in starting heart rate between the three dose levels.
 
 ```{r, results='asis',echo=FALSE, eval=TRUE}
 kable(data.frame(x_contrasts), "html",align=rep("c",ncol(data.frame(x_contrasts))), row.names = FALSE) %>%
   kable_styling(bootstrap_options = "striped", full_width = F, position="left")
 ```
 
-## Acute Effects of Cannabis on Temperature
+## Acute Effects of Cannabis on heart rate
 
 To examine the acute effects (i.e., within a treatment day) of cannabis, data points were limited to those collected during a 'dose' day.
 
-### Initial Acute Effect of Cannabis on Temperature
+### Initial Acute Effect of Cannabis on heart rate
 
-First, the initial acute effects of cannabis were assessed by only focusing on changes in temperature across different windows of time on the first study day that mice were exposed to cannabis
+First, the initial acute effects of cannabis were assessed by only focusing on changes in heart rate across different windows of time on the first study day that mice were exposed to cannabis
 
 ```{r, echo=FALSE, eval=TRUE}
 ## initial acute effects of cannabis
-x <- lmer(temp ~ dose*time_window + (1|mouse),
+x <- lmer(bpm ~ dose*time_window + (1|mouse),
           data=gavage[gavage$round==1,])
 x_means <- emmeans(x, ~ time_window, by="dose")
 x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="PreDose", adjust="none")
@@ -229,7 +229,7 @@ kable(anova(x), "html",align=rep("c",ncol(anova(x))), row.names = TRUE) %>%
 Based on the significant interaction effect, the model suggest that the effect of the within-day time window differs between doses.
 
 ```{r, echo=FALSE}
-p <- emmip(x, dose ~ time_window, ylab = "temperature in initial dose round",
+p <- emmip(x, dose ~ time_window, ylab = "heart rate in initial dose round",
       xlab = "")
 p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -251,12 +251,12 @@ kable(high_contrasts, "html",align=rep("c",ncol(high_contrasts)), row.names = FA
 
 
 
-### Acute Effect of Cannabis on Temperature After Chronic Exposure to Cannabis
+### Acute Effect of Cannabis on heart rate After Chronic Exposure to Cannabis
 
 
 ```{r echo=FALSE, eval=TRUE, include=FALSE}
 ## acute effects of cannabis after chronic exposure
-x <- lmer(temp ~ dose*time_window + (1|mouse),
+x <- lmer(bpm ~ dose*time_window + (1|mouse),
           data=gavage[gavage$round==7,])
 x_means <- emmeans(x, ~ time_window, by="dose")
 x_contrasts <- contrast(x_means,method="trt.vs.ctrl", ref="PreDose", adjust="none")
@@ -278,7 +278,7 @@ The two-way ANOVA results suggest that there are is a significant difference acr
 **Time Window Effect in Last Round of Dose Stratified by Dose**
 
 ```{r, echo=FALSE}
-p <- emmip(x, dose ~ time_window, ylab = "temperature in final dose round",
+p <- emmip(x, dose ~ time_window, ylab = "heart rate in final dose round",
       xlab = "")
 p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
